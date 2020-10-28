@@ -1,0 +1,190 @@
+{% extends 'base.html' %}
+
+
+
+{% block content %}
+{% load static %}
+<style>
+
+		body {
+		  font: 10px sans-serif;
+		}
+
+		.bar {
+		  fill: steelblue;
+		  shape-rendering: crispEdges;
+		}
+
+		.axis path, .axis line {
+		  fill: none;
+		  stroke: #000;
+		  shape-rendering: crispEdges;
+		}
+
+	</style>
+
+<div class="container">
+
+<p>Welcome, {{ user.username }}</p>
+<h3> Backorder Management </h3>
+
+<select id="selectButton">
+	<option selected disabled>Choose Supplier</option>
+</select>
+
+<script>
+		var margin = {top: 20, right: 30, bottom: 30, left: 50},
+		    width = 960 - margin.left - margin.right,
+		    height = 500 - margin.top - margin.bottom;
+
+		var parseDate = d3.time.format("%d/%m/%Y").parse;
+		var formatDate = d3.time.format("%b-%Y");
+		var formatCount = d3.format(",.0f");
+
+		var x = d3.time.scale().range([0, width]);
+		var y = d3.scale.linear().range([height, 0]);
+
+		var xAxis = d3.svg.axis().scale(x)
+		  .orient("bottom")
+		  .tickFormat(formatDate);
+
+		var yAxis = d3.svg.axis().scale(y)
+		  .orient("left").ticks(6);
+
+		// Create the SVG drawing area
+		var svg = d3.select("body")
+		  .append("svg")
+		  .attr("width", width + margin.left + margin.right)
+		  .attr("height", height + margin.top + margin.bottom)
+		  .append("g")
+		  .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+		// Get the data
+		d3.csv("{% static 'openPO.csv' %}", function(error, data) {
+		  
+		  var allGroup = d3.map(data, function(d){return(d.Supplier)}).keys()
+
+		  //set the status data into layers 
+		  var status = d3.map(data, function(d){return(d["PO Stat Code"])}).keys()
+
+		  // color palette = one color per subgroup
+		  var color = d3.scale.ordinal()
+		    .domain(status)
+		    .range(['#e41a1c','#377eb8','#4daf4a'])
+
+		  // add the options to the button
+    	  d3.select("#selectButton")
+      	  .selectAll('myOptions')
+     		  .data(allGroup)
+      	  .enter()
+    		  .append('option')
+      	  .text(function (d) { return d; }) // text showed in the menu
+      	  //.attr("value", function (d) { return d; }) // corresponding value returned by the button
+
+      	 
+		  // Parse the date strings into javascript dates
+		  data.forEach(function(d) {
+		    d.created_date = parseDate(d["PO Create Date"]);
+		  
+		  });
+
+		  // Determine the first and list dates in the data set
+		  var monthExtent = d3.extent(data, function(d) { return d.created_date; });
+
+		  // Create one bin per month, use an offset to include the first and last months
+		  var monthBins = d3.time.months(d3.time.month.offset(monthExtent[0],-1),
+		                                 d3.time.month.offset(monthExtent[1],1));
+
+		  // Use the histogram layout to create a function that will bin the data
+		  var binByMonth = d3.layout.histogram()
+		    .value(function(d) { return d.created_date; })
+		    .bins(monthBins);
+
+		  // Bin the data by month //update function
+		  var histData = binByMonth(data);
+		  //var histData = binByMonth(data.filter(function(d){ return d.Supplier == "70041 - ALO AB PARTS" }));
+		
+		  
+		  // Scale the range of the data by setting the domain
+		  x.domain(d3.extent(monthBins));
+		  y.domain([0, d3.max(histData, function(d) { return d.y; })]);
+
+    		
+		  // Set up one bar for each bin
+		  // Months have slightly different lengths so calculate the width for each bin
+		  // Note: dx, the width of the histogram bin, is in milliseconds so convert the x value
+		  // into UTC time and convert the sum back to a date in order to help calculate the width
+		  // Thanks to npdoty for pointing this out in this stack overflow post:
+		  // http://stackoverflow.com/questions/17745682/d3-histogram-date-based
+				
+				
+
+		  		svg.selectAll(".bar")
+			      .data(histData)
+			    .enter().append("rect")
+			      .attr("class", "bar")
+			      .attr("x", function(d) { return x(d.x); })
+			      .attr("width", function(d) { return x(new Date(d.x.getTime() + d.dx))-x(d.x)-1; })
+			      .attr("y", function(d) { return y(d.y); })
+			      .attr("height", function(d) { return height - y(d.y); });
+
+			  // Adding labels
+			  svg.selectAll("text")
+	      		 .data(histData)
+	      		 .enter()
+	      		 .append("text")
+	      		 .attr("class", "text")
+	      		 .attr("x", function(d) { return x(d.x) + (x(new Date(d.x.getTime() + d.dx))-x(d.x)-0.1) / 2; })
+			     .attr("y", function(d) { return y(d.y) - 4; })
+	      		 .attr("fill", "black")
+	      		 .attr("font-family" , "sans-serif")
+	      		 .attr("font-size" , "11px")
+	      		 .attr("text-anchor", "middle")
+	      		 .text(function(d) { return d.y; });
+
+			  // Add the X Axis
+			  svg.append("g")
+			      .attr("class", "x axis")
+			      .attr("transform", "translate(0," + height + ")")
+			      .call(xAxis);
+
+			  // Add the Y Axis and label
+			  svg.append("g")
+			     .attr("class", "y axis")
+			     .call(yAxis)
+			    .append("text")
+			      .attr("transform", "rotate(-90)")
+			      .attr("y", 6)
+			      .attr("dy", ".71em")
+			      .style("text-anchor", "end")
+			      .text("Number of OpenPO Lines");
+
+			   d3.select("#selectButton").on("change", function() {
+			   	applyFilter(this.value);
+			   });
+			  
+			   function applyFilter(value) {
+			   	var histData = binByMonth(data.filter(function(d) {return d.Supplier === value;}))
+
+			   	d3.selectAll(".bar")
+			   		.data(histData)
+			   		.transition().duration(1000)
+			   		.attr("x", function(d) { return x(d.x); })
+			        .attr("width", function(d) { return x(new Date(d.x.getTime() + d.dx))-x(d.x)-1; })
+			        .attr("y", function(d) { return y(d.y); })
+			        .attr("height", function(d) { return height - y(d.y); });
+
+			    d3.selectAll("text")
+			    	.data(histData)
+			    	.transition().duration(1000)
+			    	.attr("x", function(d) { return x(d.x) + (x(new Date(d.x.getTime() + d.dx))-x(d.x)-0.1) / 2; })
+			     	.attr("y", function(d) { return y(d.y) - 4; })
+			     	.text(function(d) { return d.y; });
+			   }
+
+			  });
+	    	
+			
+</script>
+</div>
+{% endblock %}
