@@ -1,7 +1,34 @@
 {% extends 'base.html' %}
 
-{% block content %}
-	<h2>Supplython</h2>
-	<p>Welcome, {% if user.is_authenticated %}{{ user.username }}{% else %}visitor{% endif %}</p>
 
+
+{% block content %}
+<style>
+.grid-container {
+  display: grid;
+  grid-column-gap: 50px;
+  grid-row-gap: 50px;
+  grid-template-columns: auto auto auto;
+  padding: 10px;
+  text-align: center;
+}
+
+</style>
+<div class="container">
+	<p>Welcome, {% if user.is_authenticated %}{{ user.username }}{% else %}visitor{% endif %}</p>
+	{% if user.is_authenticated %}
+		<div class="grid-container">
+			<div class="container-sm border" href="{% url 'backordermanagement' %}">Backorder Management</div>
+			 <div class="container-sm border">Supplier Performance</div>
+			 <div class="container-sm border">Other</div>
+			  <div>4</div>
+			  <div>5</div>
+			  <div>6</div>
+			  <div>7</div>
+			  <div>8</div>
+			</div>
+		{% else %}
+
+		{% endif %}
+</div>
 {% endblock %}
