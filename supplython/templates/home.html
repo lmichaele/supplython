@@ -13,19 +13,24 @@
   text-align: center;
 }
 
+.btn-primary {
+	background-color: #336699;
+}
+
 </style>
 <div class="container">
 	<p>Welcome, {% if user.is_authenticated %}{{ user.username }}{% else %}visitor{% endif %}</p>
 	{% if user.is_authenticated %}
 		<div class="grid-container">
-			<div class="container-sm border" href="{% url 'backordermanagement' %}">Backorder Management</div>
-			 <div class="container-sm border">Supplier Performance</div>
-			 <div class="container-sm border">Other</div>
-			  <div>4</div>
-			  <div>5</div>
-			  <div>6</div>
-			  <div>7</div>
-			  <div>8</div>
+			<a href="{% url 'backordermanagement' %}" class="btn btn-primary">Backorder Management</a>
+			 <a href="" class="btn btn-primary">Supplier Performance</a>
+			 <div class="container-sm border"></div>
+			 <div class="container-sm border"></div>
+			 <div class="container-sm border"></div>
+			 <div class="container-sm border"></div>
+			 <div class="container-sm border"></div>
+			 <div class="container-sm border"></div>
+			 <div class="container-sm border"></div>
 			</div>
 		{% else %}
 
